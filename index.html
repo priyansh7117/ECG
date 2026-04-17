@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ECG Anomaly Detector</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="ecg-app">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo-pulse">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="2,12 6,12 8,4 10,20 12,10 14,14 16,12 22,12"/>
+          </svg>
+        </div>
+        <div>
+          <h1>ECG Anomaly Detector</h1>
+          <span>AI-powered cardiac analysis</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="status-pill" id="statusPill">
+          <div class="status-dot idle" id="statusDot"></div>
+          <span id="statusText">Idle — awaiting data</span>
+        </div>
+        <button class="analyze-btn" id="analyzeBtn" disabled onclick="runAnalysis()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          Analyze
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="content">
+
+      <!-- UPLOAD ZONE -->
+      <div class="upload-zone" id="uploadZone"
+        onclick="document.getElementById('fileInput').click()"
+        ondragover="handleDragOver(event)"
+        ondragleave="handleDragLeave(event)"
+        ondrop="handleDrop(event)">
+        <div class="upload-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17,8 12,3 7,8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <h3>Upload ECG CSV File</h3>
+        <p>Drag & drop your ECG data file here, or click to browse</p>
+        <p>Supports CSV with time-series ECG values</p>
+        <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Choose File</button>
+        <div class="file-info" id="fileInfo"></div>
+      </div>
+      <input type="file" id="fileInput" accept=".csv" onchange="handleFile(event)" />
+
+      <!-- METRICS ROW -->
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="metric-label">Data Points</div>
+          <div class="metric-value" id="metricPoints">—</div>
+          <div class="metric-sub" id="metricDuration">Upload CSV to begin</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Anomalies Found</div>
+          <div class="metric-value danger" id="metricAnomalies">—</div>
+          <div class="metric-sub" id="metricAnomalyPct">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Est. Heart Rate</div>
+          <div class="metric-value success" id="metricHR">—</div>
+          <div class="metric-sub" id="metricHRLabel">bpm</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Signal Quality</div>
+          <div class="metric-value" id="metricQuality">—</div>
+          <div class="metric-sub" id="metricQualityLabel">—</div>
+        </div>
+      </div>
+
+      <!-- CHART -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title">ECG Waveform</span>
+          <div class="legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#1d9e75"></div>Normal
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#e24b4a"></div>Anomaly
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="ecgChart" role="img" aria-label="ECG waveform chart with anomaly highlighting">
+            Upload an ECG CSV to view the waveform.
+          </canvas>
+        </div>
+      </div>
+
+      <!-- BOTTOM ROW -->
+      <div class="bottom-row">
+
+        <!-- ANOMALY LIST -->
+        <div class="anomaly-list">
+          <div class="anomaly-header">
+            <h3>Detected Anomalies</h3>
+            <span class="badge neutral" id="anomalyBadge">No data</span>
+          </div>
+          <div id="anomalyList">
+            <div class="empty-state">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+              <p>Anomaly list will appear here</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI PANEL -->
+        <div class="ai-panel">
+          <div class="ai-panel-header">
+            <div class="ai-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <span>AI Clinical Summary</span>
+          </div>
+          <div id="aiContent">
+            <div class="empty-state">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4l3 3"/>
+              </svg>
+              <p>AI analysis will appear after detection</p>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /bottom-row -->
+
+    </main>
+  </div><!-- /ecg-app -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
